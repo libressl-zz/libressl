@@ -1,4 +1,4 @@
-/*	$Id: */
+/*	$OpenBSD: src/lib/libssl/src/crypto/acss/Attic/acss.h,v 1.2 2004/01/23 19:23:33 hshoexer Exp $	*/
 /*
  * Copyright (c) 2004 The OpenBSD project
  *
