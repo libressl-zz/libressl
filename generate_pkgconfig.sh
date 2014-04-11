@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $OpenBSD: src/lib/libssl/generate_pkgconfig.sh,v 1.7 2011/05/05 20:58:15 jasper Exp $
+# $OpenBSD: src/lib/libssl/generate_pkgconfig.sh,v 1.8 2014/04/11 22:51:53 miod Exp $
 #
 # Copyright (c) 2010,2011 Jasper Lievisse Adriaanse <jasper@openbsd.org>
 #
@@ -57,22 +57,6 @@ lib_version=$(sed -nE ${version_re} ${version_file})
 # Put -I${includedir} into Cflags so configure script tests like
 #   test -n "`pkg-config --cflags openssl`"
 # don't assume that OpenSSL isn't available.
-
-pc_file="${objdir}/libcrypto.pc"
-cat > ${pc_file} << __EOF__
-prefix=/usr
-exec_prefix=\${prefix}
-libdir=\${exec_prefix}/lib
-includedir=\${prefix}/include
-
-Name: OpenSSL-libcrypto
-Description: OpenSSL cryptography library
-Version: ${lib_version}
-Requires: 
-Libs: -L\${libdir} -lcrypto
-Cflags: -I\${includedir}
-__EOF__
-
 
 pc_file="${objdir}/libssl.pc"
 cat > ${pc_file} << __EOF__
