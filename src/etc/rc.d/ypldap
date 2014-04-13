@@ -1,0 +1,11 @@
+#!/bin/sh
+#
+# $OpenBSD: src/lib/libssl/src/etc/rc.d/ypldap,v 1.1.1.1 2014/04/13 15:16:32 miod Exp $
+
+daemon="/usr/sbin/ypldap"
+
+. /etc/rc.d/rc.subr
+
+pexp="ypldap: ldap client"
+
+rc_cmd $1

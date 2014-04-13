@@ -1,0 +1,8 @@
+#	$OpenBSD: src/lib/libssl/src/etc/shells,v 1.1.1.1 2014/04/13 15:16:31 miod Exp $
+#
+# list of acceptable shells for chpass(1).
+# ftpd(8) will not allow users to connect who are not using
+# one of these shells, unless the user is listed in /etc/ftpchroot.
+/bin/sh
+/bin/csh
+/bin/ksh

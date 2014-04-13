@@ -1,0 +1,17 @@
+#!/bin/sh
+#
+# $OpenBSD: src/lib/libssl/src/etc/rc.d/iked,v 1.1.1.1 2014/04/13 15:16:32 miod Exp $
+
+daemon="/sbin/iked"
+
+. /etc/rc.d/rc.subr
+
+pexp="iked:.*parent.*"
+
+rc_pre() {
+	[ X"${sasyncd_flags}" != X"NO" ] && \
+		daemon_flags="-S ${daemon_flags}"
+	return 0
+}
+
+rc_cmd $1

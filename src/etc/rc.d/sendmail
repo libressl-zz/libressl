@@ -1,0 +1,13 @@
+#!/bin/sh
+#
+# $OpenBSD: src/lib/libssl/src/etc/rc.d/sendmail,v 1.1.1.1 2014/04/13 15:16:32 miod Exp $
+
+daemon="/usr/sbin/sendmail"
+
+. /etc/rc.d/rc.subr
+
+pexp="(sendmail: (accepting|rejecting).*|${daemon}.* -(q[0-9]|bd)*)"
+
+rc_bg=YES
+
+rc_cmd $1

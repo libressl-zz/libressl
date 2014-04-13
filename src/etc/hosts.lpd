@@ -1,0 +1,3 @@
+#	$OpenBSD: src/lib/libssl/src/etc/hosts.lpd,v 1.1.1.1 2014/04/13 15:16:31 miod Exp $
+# As described in lpd(8), place one legal access hostname per line.
+# See hosts.equiv(5) for syntax and examples.

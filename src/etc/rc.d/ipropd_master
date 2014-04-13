@@ -1,0 +1,11 @@
+#!/bin/sh
+#
+# $OpenBSD: src/lib/libssl/src/etc/rc.d/ipropd_master,v 1.1.1.1 2014/04/13 15:16:32 miod Exp $
+
+daemon="/usr/libexec/ipropd-master --detach"
+
+. /etc/rc.d/rc.subr
+
+rc_reload=NO
+
+rc_cmd $1

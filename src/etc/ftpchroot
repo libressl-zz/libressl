@@ -1,0 +1,4 @@
+#	$OpenBSD: src/lib/libssl/src/etc/ftpchroot,v 1.1.1.1 2014/04/13 15:16:31 miod Exp $
+#
+# list of users (one per line) given ftp access to a chrooted area.
+# read by ftpd(8).

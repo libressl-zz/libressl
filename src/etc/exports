@@ -1,0 +1,5 @@
+#	$OpenBSD: src/lib/libssl/src/etc/exports,v 1.1.1.1 2014/04/13 15:16:31 miod Exp $
+#
+# NFS exports Database
+# See exports(5) for more information.  Be very careful:  misconfiguration
+# of this file can result in your filesystems being readable by the world.

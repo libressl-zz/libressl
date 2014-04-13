@@ -1,0 +1,12 @@
+#!/bin/sh
+#
+# $OpenBSD: src/lib/libssl/src/etc/rc.d/dvmrpd,v 1.1.1.1 2014/04/13 15:16:31 miod Exp $
+
+daemon="/usr/sbin/dvmrpd"
+
+. /etc/rc.d/rc.subr
+
+pexp="dvmrpd: parent.*"
+rc_reload=NO
+
+rc_cmd $1

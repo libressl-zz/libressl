@@ -1,0 +1,15 @@
+#!/bin/sh
+#
+# $OpenBSD: src/lib/libssl/src/etc/rc.d/ldattach,v 1.1.1.1 2014/04/13 15:16:32 miod Exp $
+
+daemon="/sbin/ldattach"
+
+. /etc/rc.d/rc.subr
+
+rc_reload=NO
+
+rc_pre() {
+	[ -n "${ldattach_flags}" ]
+}
+
+rc_cmd $1

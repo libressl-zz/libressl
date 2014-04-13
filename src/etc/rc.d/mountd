@@ -1,0 +1,17 @@
+#!/bin/sh
+#
+# $OpenBSD: src/lib/libssl/src/etc/rc.d/mountd,v 1.1.1.1 2014/04/13 15:16:32 miod Exp $
+
+daemon="/sbin/mountd"
+
+. /etc/rc.d/rc.subr
+
+rc_stop=NO
+
+rc_pre() {
+	[ -s /etc/exports ] && grep -qv '^#' /etc/exports && \
+		rm -f /var/db/mountdtab && \
+		echo -n > /var/db/mountdtab
+}
+
+rc_cmd $1

@@ -1,0 +1,10 @@
+#
+#	$OpenBSD: src/lib/libssl/src/etc/etc.luna88k/ttys,v 1.1.1.1 2014/04/13 15:16:31 miod Exp $
+#
+# name	getty				type	status		comments
+#
+console	"/usr/libexec/getty std.9600"	vt220	on   secure
+# graphics console
+ttyC0	"/usr/libexec/getty std.9600"	vt220	off secure
+# siotty(4) serial console port
+ttya	"/usr/libexec/getty std.9600"	unknown	off  secure	# console
