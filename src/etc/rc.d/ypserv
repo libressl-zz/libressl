@@ -1,0 +1,13 @@
+#!/bin/sh
+#
+# $OpenBSD: src/lib/libssl/src/etc/rc.d/ypserv,v 1.1.1.1 2014/04/13 15:16:32 miod Exp $
+
+daemon="/usr/sbin/ypserv"
+
+. /etc/rc.d/rc.subr
+
+rc_pre() {
+	[ X"`domainname`" != X"" -a -d /var/yp/`domainname` ]
+}
+
+rc_cmd $1

@@ -1,0 +1,27 @@
+# $OpenBSD: src/lib/libssl/src/etc/kerberosV/krb5.conf.example,v 1.1.1.1 2014/04/13 15:16:31 miod Exp $
+#
+# Kerberos 5 minimal configuration example.
+# See krb5.conf(5) and the heimdal info(1) page for more information.
+
+[libdefaults]
+	# local realm(s)
+	default_realm = DOMAIN.TLD
+
+[realms]
+	DOMAIN.TLD = {
+		# list of KDC(s) for this realm
+		kdc = kerberos.domain.tld
+
+		# admin server for this realm
+		admin_server = kerberos.domain.tld
+	}
+
+[kadmin]
+	# default salt string
+	default_keys = v5
+
+[logging]
+	# log to syslog(3)
+	kdc = SYSLOG:INFO:DAEMON
+	kpasswdd = SYSLOG:INFO:AUTH
+	default = SYSLOG:INFO:DAEMON

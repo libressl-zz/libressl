@@ -1,0 +1,538 @@
+#	$OpenBSD: src/lib/libssl/src/etc/rc,v 1.1.1.1 2014/04/13 15:16:31 miod Exp $
+
+# System startup script run by init on autoboot
+# or after single-user.
+# Output and error are redirected to console by init,
+# and the console is the controlling terminal.
+
+# Subroutines (have to come first).
+
+# Strip comments (and leading/trailing whitespace if IFS is set)
+# from a file and spew to stdout
+stripcom() {
+	local _file="$1"
+	local _line
+
+	{
+		while read _line ; do
+			_line=${_line%%#*}		# strip comments
+			test -z "$_line" && continue
+			echo $_line
+		done
+	} < $_file
+}
+
+# Update resource limits when sysctl changes
+# Usage: update_limit -X loginconf_name
+update_limit() {
+	local _fl="$1"	# ulimit flag
+	local _lc="$2"	# login.conf name
+	local _new _suf
+
+	for _suf in "" -cur -max; do
+		_new=`getcap -f /etc/login.conf -s ${_lc}${_suf} daemon 2>/dev/null`
+		if [ X"$_new" != X"" ]; then
+			if [ X"$_new" = X"infinity" ]; then
+				_new=unlimited
+			fi
+			case "$_suf" in
+			-cur)
+				ulimit -S $_fl $_new
+				;;
+			-max)
+				ulimit -H $_fl $_new
+				;;
+			*)
+				ulimit $_fl $_new
+				return
+				;;
+			esac
+		fi
+	done
+}
+
+sysctl_conf() {
+	test -s /etc/sysctl.conf || return
+
+	# delete comments and blank lines
+	set -- `stripcom /etc/sysctl.conf`
+	while [ $# -ge 1 ] ; do
+		sysctl $1
+		# update limits if needed
+		case $1 in
+		kern.maxproc=*)
+			update_limit -p maxproc
+			;;
+		kern.maxfiles=*)
+			update_limit -n openfiles
+			;;
+		esac
+		shift
+	done
+}
+
+mixerctl_conf()
+{
+	test -s /etc/mixerctl.conf || return
+
+	# delete comments and blank lines
+	set -- `stripcom /etc/mixerctl.conf`
+	while [ $# -ge 1 ] ; do
+		mixerctl -q $1 > /dev/null 2>&1
+		shift
+	done
+}
+
+wsconsctl_conf()
+{
+	local save_IFS="$IFS"
+
+	test -x /sbin/wsconsctl -a -s /etc/wsconsctl.conf || return
+	# delete comments and blank lines
+	IFS="
+"
+	set -- `stripcom /etc/wsconsctl.conf`
+	IFS="$save_IFS"
+	while [ $# -ge 1 ] ; do
+		eval wsconsctl $1
+		shift
+	done
+}
+
+random_seed()
+{
+	{
+		# push the old seed into the kernel
+		dd if=/var/db/host.random of=/dev/random bs=65536 count=1
+		chmod 600 /var/db/host.random
+		# ... and create a future seed
+		dd if=/dev/random of=/var/db/host.random bs=65536 count=1
+		# and create a seed file for the boot-loader
+		dd if=/dev/random of=/etc/random.seed bs=512 count=1
+		chmod 600 /etc/random.seed
+	} > /dev/null 2>&1
+}
+
+fill_baddynamic()
+{
+	local _service=$1
+	local _sysctl="net.inet.${_service}.baddynamic"
+	stripcom /etc/services |
+	{
+		# Variables are local
+		while IFS=" 	/" read _name _port _srv _junk; do
+			[ "x${_srv}" = "x${_service}" ] || continue
+			_ban="${_ban:+${_ban},}+${_port}"
+			# Flush before argv gets too long
+			if [ ${#_ban} -gt 1024 ]; then
+				sysctl -q ${_sysctl}=${_ban}
+				_ban=""
+			fi
+		done
+		[ "${_ban}" ] && sysctl -q ${_sysctl}=${_ban}
+	}
+}
+
+start_daemon()
+{
+	local _n
+	for _n; do
+		eval _do=\${${_n}_flags}
+		if [ X"${_do}" != X"NO" ]; then
+			/etc/rc.d/${_n} start
+		fi
+	done
+}
+
+make_keys()
+{
+	if [ X"${named_flags}" != X"NO" ]; then
+		if ! cmp -s /etc/rndc.key /var/named/etc/rndc.key ; then
+			echo -n "rndc-confgen: generating shared secret... "
+			if rndc-confgen -a -t /var/named >/dev/null 2>&1; then
+				chmod 0640 /var/named/etc/rndc.key \
+				    >/dev/null 2>&1
+				echo done.
+			else
+				echo failed.
+			fi
+		fi
+	fi
+
+	if [ ! -f /etc/isakmpd/private/local.key ]; then
+		echo -n "openssl: generating isakmpd/iked RSA key... "
+		if openssl genrsa -out /etc/isakmpd/private/local.key 2048 \
+		    >/dev/null 2>&1; then
+			chmod 600 /etc/isakmpd/private/local.key
+			openssl rsa -out /etc/isakmpd/local.pub -in \
+			    /etc/isakmpd/private/local.key -pubout \
+			    >/dev/null 2>&1
+			echo done.
+		else
+			echo failed.
+		fi
+	fi
+
+	if [ ! -f /etc/iked/private/local.key ]; then
+		# Just copy the generated isakmpd key
+		cp /etc/isakmpd/private/local.key /etc/iked/private/local.key
+		chmod 600 /etc/iked/private/local.key
+		cp /etc/isakmpd/local.pub /etc/iked/local.pub
+	fi
+
+	ssh-keygen -A
+}
+
+# create Unix sockets directories for X if needed and make sure they have
+# correct permissions
+setup_X_sockets()
+{
+	if [ -d /usr/X11R6/lib ]; then
+		for d in /tmp/.X11-unix /tmp/.ICE-unix ; do
+			if [ -d $d ]; then
+				if [ `ls -ld $d | cut -d' ' -f4` \
+				    != root ]; then
+					chown root $d
+				fi
+				if [ `ls -ld $d | cut -d' ' -f1` \
+				    != drwxrwxrwt ]; then
+					chmod 1777 $d
+				fi
+			elif [ -e $d ]; then
+				echo "Error: $d exists and isn't a directory."
+			else
+				mkdir -m 1777 $d
+			fi
+		done
+	fi
+}
+
+# End subroutines
+
+stty status '^T'
+
+# Set shell to ignore SIGINT (2), but not children;
+# shell catches SIGQUIT (3) and returns to single user after fsck.
+trap : 2
+trap : 3	# shouldn't be needed
+
+HOME=/; export HOME
+INRC=1; export INRC
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+export PATH
+
+# must set the domainname before rc.conf, so YP startup choices can be made
+if [ -f /etc/defaultdomain ]; then
+	domainname `stripcom /etc/defaultdomain`
+fi
+
+# pick up option configuration
+. /etc/rc.conf
+
+if [ X"$1" = X"shutdown" ]; then
+	random_seed
+
+	# If we are in secure level 0, assume single user mode.
+	if [ `sysctl -n kern.securelevel` -ne 0 ]; then
+		pkg_scripts=${pkg_scripts%%*( )}
+		if [ -n "${pkg_scripts}" ]; then
+			echo -n 'stopping package daemons:'
+			while [ -n "${pkg_scripts}" ]; do
+				_r=${pkg_scripts##* }
+				pkg_scripts=${pkg_scripts%%*( )${_r}}
+				[ -x /etc/rc.d/${_r} ] && /etc/rc.d/${_r} stop
+			done
+			echo '.'
+		fi
+
+		echo /etc/rc.shutdown in progress...
+		. /etc/rc.shutdown
+		echo /etc/rc.shutdown complete.
+	else
+		echo single user: not running shutdown scripts
+	fi
+
+	# bring carp interfaces down gracefully
+	ifconfig | while read a b; do
+		case $a in
+		carp+([0-9]):) ifconfig ${a%:} down ;;
+		esac
+	done
+
+	if [ X"${powerdown}" = X"YES" ]; then
+		exit 2
+	fi
+	exit 0
+fi
+
+swapctl -A -t blk
+
+if [ -e /fastboot ]; then
+	echo "Fast boot: skipping disk checks."
+elif [ X"$1" = X"autoboot" ]; then
+	echo "Automatic boot in progress: starting file system checks."
+	fsck -p
+	case $? in
+	0)
+		;;
+	2)
+		exit 1
+		;;
+	4)
+		echo "Rebooting..."
+		reboot
+		echo "Reboot failed; help!"
+		exit 1
+		;;
+	8)
+		echo "Automatic file system check failed; help!"
+		exit 1
+		;;
+	12)
+		echo "Boot interrupted."
+		exit 1
+		;;
+	130)
+		# interrupt before catcher installed
+		exit 1
+		;;
+	*)
+		echo "Unknown error; help!"
+		exit 1
+		;;
+	esac
+fi
+
+trap "echo 'Boot interrupted.'; exit 1" 3
+
+umount -a >/dev/null 2>&1
+mount -a -t nonfs,vnd
+mount -uw /		# root on nfs requires this, others aren't hurt
+rm -f /fastboot		# XXX (root now writeable)
+
+# set flags on ttys.  (do early, in case they use tty for SLIP in netstart)
+echo 'setting tty flags'
+ttyflags -a
+
+if [ -f /sbin/kbd -a -f /etc/kbdtype ]; then
+	kbd `cat /etc/kbdtype`
+fi
+
+wsconsctl_conf
+
+if [ X"${pf}" != X"NO" ]; then
+	RULES="block all"
+	RULES="$RULES\npass on lo0"
+	RULES="$RULES\npass in proto tcp from any to any port 22 keep state"
+	RULES="$RULES\npass out proto { tcp, udp } from any to any port 53 keep state"
+	RULES="$RULES\npass out inet proto icmp all icmp-type echoreq keep state"
+	RULES="$RULES\npass out inet proto udp from any port bootpc to any port bootps"
+	RULES="$RULES\npass in inet proto udp from any port bootps to any port bootpc"
+	if ifconfig lo0 inet6 >/dev/null 2>&1; then
+		RULES="$RULES\npass out inet6 proto icmp6 all icmp6-type neighbrsol"
+		RULES="$RULES\npass in inet6 proto icmp6 all icmp6-type neighbradv"
+		RULES="$RULES\npass out inet6 proto icmp6 all icmp6-type routersol"
+		RULES="$RULES\npass in inet6 proto icmp6 all icmp6-type routeradv"
+		RULES="$RULES\npass out inet6 proto udp from any port dhcpv6-client to any port dhcpv6-server"
+		RULES="$RULES\npass in inet6 proto udp from any port dhcpv6-server to any port dhcpv6-client"
+	fi
+	RULES="$RULES\npass proto carp keep state (no-sync)"
+	case `sysctl vfs.mounts.nfs 2>/dev/null` in
+	*[1-9]*)
+		# don't kill NFS
+		RULES="set reassemble yes no-df\n$RULES"
+		RULES="$RULES\npass in proto { tcp, udp } from any port { 111, 2049 } to any"
+		RULES="$RULES\npass out proto { tcp, udp } from any to any port { 111, 2049 }"
+		;;
+	esac
+	echo $RULES | pfctl -f -
+	pfctl -e
+fi
+
+# Fill net.inet.(tcp|udp).baddynamic lists from /etc/services
+fill_baddynamic udp
+fill_baddynamic tcp
+
+sysctl_conf
+
+# set hostname, turn on network
+echo 'starting network'
+ifconfig -g carp carpdemote 128
+if [ -f /etc/resolv.conf.save ]; then
+	mv -f /etc/resolv.conf.save /etc/resolv.conf
+	touch /etc/resolv.conf
+fi
+. /etc/netstart
+dmesg > /dev/random	# any write triggers an RC4 rekey
+
+if [ X"${pf}" != X"NO" ]; then
+	if [ -f ${pf_rules} ]; then
+		pfctl -f ${pf_rules}
+	fi
+	# bring up pfsync after the working ruleset has been loaded
+	if [ -f /etc/hostname.pfsync0 ]; then
+		. /etc/netstart pfsync0
+	fi
+fi
+
+mount -s /usr >/dev/null 2>&1
+mount -s /var >/dev/null 2>&1
+
+random_seed
+
+# clean up left-over files
+rm -f /etc/nologin /var/spool/lock/LCK.* /var/spool/uucp/STST/*
+(cd /var/run && { rm -rf -- *; install -c -m 664 -g utmp /dev/null utmp; })
+(cd /var/authpf && rm -rf -- *)
+
+# save a copy of the boot messages
+dmesg >/var/run/dmesg.boot
+
+make_keys
+
+echo -n 'starting early daemons:'
+start_daemon syslogd ldattach pflogd named nsd unbound ntpd
+start_daemon isakmpd iked sasyncd ldapd npppd
+echo '.'
+
+if [ X"${ipsec}" != X"NO" ]; then
+	if [ -f ${ipsec_rules} ]; then
+		ipsecctl -f ${ipsec_rules}
+	fi
+fi
+
+echo -n 'starting RPC daemons:'
+start_daemon portmap ypldap
+if [ X"`domainname`" != X"" ]; then
+	start_daemon ypserv ypbind yppasswdd
+fi
+start_daemon mountd nfsd lockd statd amd
+echo '.'
+
+mount -a
+swapctl -A -t noblk
+
+# /var/crash should be a directory or a symbolic link
+# to the crash directory if core dumps are to be saved.
+if [ -d /var/crash ]; then
+	savecore ${savecore_flags} /var/crash
+fi
+
+if [ X"${check_quotas}" = X"YES" ]; then
+	echo -n 'checking quotas:'
+	quotacheck -a
+	echo ' done.'
+	quotaon -a
+fi
+
+kvm_mkdb			# build kvm(3) databases
+dev_mkdb
+chmod 666 /dev/tty[pqrstuvwxyzPQRST]*
+chown root:wheel /dev/tty[pqrstuvwxyzPQRST]*
+
+# check the password temp/lock file
+if [ -f /etc/ptmp ]; then
+	logger -s -p auth.err \
+	    'password file may be incorrect -- /etc/ptmp exists'
+fi
+
+echo clearing /tmp
+
+# prune quickly with one rm, then use find to clean up /tmp/[lq]*
+# (not needed with mfs /tmp, but doesn't hurt there...)
+(cd /tmp && rm -rf [a-km-pr-zA-Z]*)
+(cd /tmp &&
+    find . ! -name . ! -name lost+found ! -name quota.user \
+	! -name quota.group -execdir rm -rf -- {} \; -type d -prune)
+
+setup_X_sockets
+
+[ -f /etc/rc.securelevel ] && . /etc/rc.securelevel
+if [ X"${securelevel}" != X"" ]; then
+	echo -n 'setting kernel security level: '
+	sysctl kern.securelevel=${securelevel}
+fi
+
+# patch /etc/motd
+if [ ! -f /etc/motd ]; then
+	install -c -o root -g wheel -m 664 /dev/null /etc/motd
+fi
+if T=`mktemp /tmp/_motd.XXXXXXXXXX`; then
+	sysctl -n kern.version | sed 1q > $T
+	echo "" >> $T
+	sed '1,/^$/d' < /etc/motd >> $T
+	cmp -s $T /etc/motd || cp $T /etc/motd
+	rm -f $T
+fi
+
+if [ X"${accounting}" = X"YES" ]; then
+	if [ ! -f /var/account/acct ]; then
+		touch /var/account/acct
+	fi
+	echo 'turning on accounting';	accton /var/account/acct
+fi
+
+if [ -f /sbin/ldconfig ]; then
+	echo 'creating runtime link editor directory cache.'
+	if [ -d /usr/local/lib ]; then
+		shlib_dirs="/usr/local/lib $shlib_dirs"
+	fi
+	if [ -d /usr/X11R6/lib ]; then
+		shlib_dirs="/usr/X11R6/lib $shlib_dirs"
+	fi
+	ldconfig $shlib_dirs
+fi
+
+echo 'preserving editor files.';	/usr/libexec/vi.recover
+
+echo -n 'starting network daemons:'
+start_daemon ldomd sshd snmpd ldpd ripd ospfd ospf6d bgpd ifstated
+start_daemon relayd dhcpd dhcrelay mrouted dvmrpd
+
+if ifconfig lo0 inet6 >/dev/null 2>&1; then
+	fw=`sysctl -n net.inet6.ip6.forwarding`
+	if [ X"${fw}" = X"0" ]; then
+		start_daemon rtsold
+	else
+		start_daemon route6d rtadvd
+	fi
+fi
+
+start_daemon hostapd rwhod lpd sendmail smtpd slowcgi nginx ftpd
+start_daemon ftpproxy tftpd tftpproxy identd inetd rarpd bootparamd
+start_daemon rbootd mopd spamd spamlogd kdc kadmind kpasswdd
+start_daemon ipropd_master ipropd_slave sndiod
+echo '.'
+
+# If rc.firstime exists, run it just once, and make sure it is deleted
+if [ -f /etc/rc.firsttime ]; then
+	mv /etc/rc.firsttime /etc/rc.firsttime.run
+	. /etc/rc.firsttime.run 2>&1 | tee /dev/tty |
+		mail -Es "`hostname` rc.firsttime output" root >/dev/null
+fi
+rm -f /etc/rc.firsttime.run
+
+# Run rc.d(8) scripts from packages
+if [ -n "${pkg_scripts}" ]; then
+	echo -n 'starting package daemons:'
+	for _r in $pkg_scripts; do
+		if [ -x /etc/rc.d/${_r} ]; then
+			start_daemon ${_r}
+		else
+			echo -n " ${_r}(absent)"
+		fi
+	done
+	echo '.'
+fi
+
+[ -f /etc/rc.local ] && . /etc/rc.local
+
+ifconfig -g carp -carpdemote 128	# disable carp interlock
+
+mixerctl_conf
+echo -n 'starting local daemons:'
+start_daemon apmd sensorsd hotplugd watchdogd cron wsmoused xdm
+echo '.'
+
+date
+exit 0

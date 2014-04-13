@@ -1,0 +1,21 @@
+#!/bin/sh
+#
+# $OpenBSD: src/lib/libssl/src/etc/rc.d/amd,v 1.1.1.1 2014/04/13 15:16:31 miod Exp $
+
+daemon="/usr/sbin/amd"
+
+. /etc/rc.d/rc.subr
+
+rc_reload=NO
+rc_stop=NO
+
+rc_pre() {
+	[ -e ${amd_master} ] || return 1
+	daemon_flags="${daemon_flags} $(print -rn -- $(< ${amd_master}))"
+}
+
+rc_start() {
+	${rcexec} "cd /etc/amd; ${daemon} ${daemon_flags}"
+}
+
+rc_cmd $1

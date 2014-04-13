@@ -1,0 +1,13 @@
+#!/bin/sh
+#
+# $OpenBSD: src/lib/libssl/src/etc/rc.d/identd,v 1.1.1.1 2014/04/13 15:16:32 miod Exp $
+
+daemon="/usr/sbin/identd"
+daemon_flags="-e"
+
+. /etc/rc.d/rc.subr
+
+pexp="identd: (listen|resolver)"
+rc_reload=NO
+
+rc_cmd $1

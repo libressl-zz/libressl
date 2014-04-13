@@ -1,0 +1,6 @@
+#	$OpenBSD: src/lib/libssl/src/etc/ftpusers,v 1.1.1.1 2014/04/13 15:16:31 miod Exp $
+#
+# list of users disallowed any ftp access.
+# read by ftpd(8).
+# by default, uids below 1000 are not permitted; see ftpd's -m option.
+nobody

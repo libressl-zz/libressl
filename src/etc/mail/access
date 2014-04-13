@@ -1,0 +1,8 @@
+# $OpenBSD: src/lib/libssl/src/etc/mail/access,v 1.1.1.1 2014/04/13 15:16:31 miod Exp $
+#
+# sendmail(8) access database.  Rebuild by running as root:
+#   makemap hash /etc/mail/access < /etc/mail/access
+#
+# See /usr/share/sendmail/README for a description of this file
+# under the "access_db" feature.
+#

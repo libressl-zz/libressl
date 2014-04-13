@@ -1,0 +1,11 @@
+#!/bin/sh
+#
+# $OpenBSD: src/lib/libssl/src/etc/rc.d/ldapd,v 1.1.1.1 2014/04/13 15:16:32 miod Exp $
+
+daemon="/usr/sbin/ldapd"
+
+. /etc/rc.d/rc.subr
+
+pexp="ldapd: ldap server.*"
+
+rc_cmd $1

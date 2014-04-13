@@ -1,0 +1,10 @@
+#	$OpenBSD: src/lib/libssl/src/etc/rc.shutdown,v 1.1.1.1 2014/04/13 15:16:31 miod Exp $
+#
+# If it exists, this script is run at system-shutdown by reboot(8),
+# halt(8).  If the architecture supports keyboard requested halting,
+# it is also run by init(8) when such an event happens.
+#
+
+powerdown=NO	# set to YES for powerdown
+
+# Add your local shutdown actions here.

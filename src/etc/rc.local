@@ -1,0 +1,6 @@
+#	$OpenBSD: src/lib/libssl/src/etc/rc.local,v 1.1.1.1 2014/04/13 15:16:31 miod Exp $
+
+# Site-specific startup actions, daemons, and other things which
+# can be done AFTER your system goes into securemode.  For actions
+# which should be done BEFORE your system has gone into securemode
+# please see /etc/rc.securelevel.

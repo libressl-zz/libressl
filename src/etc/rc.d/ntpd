@@ -1,0 +1,12 @@
+#!/bin/sh
+#
+# $OpenBSD: src/lib/libssl/src/etc/rc.d/ntpd,v 1.1.1.1 2014/04/13 15:16:32 miod Exp $
+
+daemon="/usr/sbin/ntpd"
+
+. /etc/rc.d/rc.subr
+
+pexp="ntpd: \[priv\]"
+rc_reload=NO
+
+rc_cmd $1

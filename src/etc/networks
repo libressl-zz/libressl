@@ -1,0 +1,10 @@
+#	$OpenBSD: src/lib/libssl/src/etc/networks,v 1.1.1.1 2014/04/13 15:16:31 miod Exp $
+#
+
+# Internet networks (from nic.ddn.mil)
+# 1) The multicast network
+BASE-ADDRESS.MCAST.NET	224
+loopback		127	loop
+
+# Your subnets follow...
+

@@ -1,0 +1,23 @@
+#	$OpenBSD: src/lib/libssl/src/etc/locate.rc,v 1.1.1.1 2014/04/13 15:16:31 miod Exp $
+#
+# /etc/locate.rc -  command script for updatedb(8)
+#
+
+# temp directory
+TMPDIR="/var/tmp"
+
+# the actual database
+FCODES="/var/db/locate.database"
+
+# directories to be put in the database
+SEARCHPATHS="/"
+
+# directories unwanted in output
+PRUNEPATHS="/tmp /var/tmp /usr/tmp"
+
+# filesystems allowed. Beware: a non-listed filesystem will be pruned
+# and if the SEARCHPATHS starts in such a filesystem locate will build
+# an empty database
+#
+# be careful if you add 'nfs'
+FILESYSTEMS="ffs ufs ext2fs"

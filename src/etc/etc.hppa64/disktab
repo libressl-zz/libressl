@@ -1,0 +1,6 @@
+#	$OpenBSD: src/lib/libssl/src/etc/etc.hppa64/disktab,v 1.1.1.1 2014/04/13 15:16:31 miod Exp $
+
+rdroot|ramdiskroot|RAM-disk root FS image:\
+	:ty=simulated:se#512:nc#20:nt#2:ns#128:\
+	:ta=4.2BSD:oa#0:pa#5120:fa#1024:ba#8192:\
+	:ob#0:pb#0:oc#0:pc#5120:

@@ -1,0 +1,15 @@
+#!/bin/sh
+#
+# $OpenBSD: src/lib/libssl/src/etc/rc.d/dhcpd,v 1.1.1.1 2014/04/13 15:16:31 miod Exp $
+
+daemon="/usr/sbin/dhcpd"
+
+. /etc/rc.d/rc.subr
+
+rc_reload=NO
+
+rc_pre() {
+	touch /var/db/dhcpd.leases
+}
+
+rc_cmd $1

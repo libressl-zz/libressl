@@ -1,0 +1,16 @@
+#!/bin/sh
+#
+# $OpenBSD: src/lib/libssl/src/etc/rc.d/ypbind,v 1.1.1.1 2014/04/13 15:16:32 miod Exp $
+
+daemon="/usr/sbin/ypbind"
+
+. /etc/rc.d/rc.subr
+
+rc_bg=YES
+rc_reload=NO
+
+rc_pre() {
+	[ X"`domainname`" != X"" ]
+}
+
+rc_cmd $1

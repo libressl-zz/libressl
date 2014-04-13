@@ -1,0 +1,38 @@
+#!/bin/sh
+#
+# $OpenBSD: src/lib/libssl/src/etc/rc.d/nsd,v 1.1.1.1 2014/04/13 15:16:32 miod Exp $
+
+daemon="/usr/sbin/nsd-control"
+daemon_flags="-c /var/nsd/etc/nsd.conf"
+
+. /etc/rc.d/rc.subr
+
+pexp="nsd${daemon_flags:+ ${daemon_flags}}"
+rc_usercheck=NO
+
+rc_pre() {
+	if ! [[ -f /var/nsd/etc/nsd_server.key ||
+	    -f /var/nsd/etc/nsd_server.pem ||
+	    -f /var/nsd/etc/nsd_control.key ||
+	    -f /var/nsd/etc/nsd_control.pem ]]; then
+		/usr/sbin/nsd-control-setup >/dev/null 2>&1
+	fi
+}
+
+rc_start() {
+	${rcexec} "${daemon} ${daemon_flags} start"
+}
+
+rc_check() {
+	${daemon} status
+}
+
+rc_reload() {
+	${daemon} reconfig && ${daemon} reload
+}
+
+rc_stop() {
+	${daemon} stop
+}
+
+rc_cmd $1

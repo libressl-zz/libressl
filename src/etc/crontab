@@ -1,0 +1,23 @@
+#	$OpenBSD: src/lib/libssl/src/etc/crontab,v 1.1.1.1 2014/04/13 15:16:31 miod Exp $
+#
+# /var/cron/tabs/root - root's crontab
+#
+SHELL=/bin/sh
+PATH=/bin:/sbin:/usr/bin:/usr/sbin
+HOME=/var/log
+#
+#minute	hour	mday	month	wday	command
+#
+# sendmail clientmqueue runner
+#*/30	*	*	*	*	/usr/sbin/sendmail -L sm-msp-queue -Ac -q
+#
+# rotate log files every hour, if necessary
+0	*	*	*	*	/usr/bin/newsyslog
+# send log file notifications, if necessary
+#1-59	*	*	*	*	/usr/bin/newsyslog -m
+#
+# do daily/weekly/monthly maintenance
+30	1	*	*	*	/bin/sh /etc/daily
+30	3	*	*	6	/bin/sh /etc/weekly
+30	5	1	*	*	/bin/sh /etc/monthly
+#0	*	*	*	*	sleep $((RANDOM \% 1800)) && /usr/libexec/spamd-setup

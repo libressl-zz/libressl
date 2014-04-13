@@ -1,0 +1,6 @@
+#	$OpenBSD: src/lib/libssl/src/etc/etc.aviion/disktab,v 1.1.1.1 2014/04/13 15:16:31 miod Exp $
+
+rdroot|ramdiskroot|RAM-disk root FS image:\
+	:ty=simulated:se#512:nc#16:nt#2:ns#128:\
+	:ta=4.2BSD:oa#0:pa#4096:fa#512:ba#4096\
+	:ob#0:pb#0:oc#0:pc#4096:
